@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StaffRoom OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+/* ─── Reset & Base ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { width: 100%; height: 100%; overflow: hidden; background: #0d0d1a; }
+body { font-family: 'Press Start 2P', monospace; color: #f0f0e8; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1a1a2e; }
+::-webkit-scrollbar-thumb { background: #4a4a6a; border-radius: 3px; }
+
+/* ─── OS Shell ─────────────────────────────────────────────────────────── */
+.os-shell { width:100vw; height:100vh; display:flex; flex-direction:column; background:#0d0d1a; overflow:hidden; }
+
+.os-titlebar { height:36px; background:linear-gradient(180deg,#2a2a4e,#1a1a3e); border-bottom:2px solid #4a4a8a; display:flex; align-items:center; padding:0 12px; gap:12px; flex-shrink:0; }
+.os-traffic { display:flex; gap:6px; align-items:center; }
+.os-btn { width:12px; height:12px; border-radius:50%; cursor:pointer; }
+.os-btn.red    { background:#e74c3c; }
+.os-btn.yellow { background:#f39c12; }
+.os-btn.green  { background:#2ecc71; }
+.os-title { flex:1; font-size:9px; color:#8888cc; text-align:center; letter-spacing:2px; }
+.os-version { color:#4a4a6a; font-size:7px; }
+.os-clock { font-size:8px; color:#6666aa; letter-spacing:1px; }
+
+.os-tabbar { display:flex; background:#16162e; border-bottom:2px solid #2a2a4e; flex-shrink:0; }
+.os-tab { font-family:'Press Start 2P',monospace; font-size:7px; padding:9px 16px; background:transparent; border:none; border-right:1px solid #2a2a4e; color:#6666aa; cursor:pointer; display:flex; align-items:center; gap:6px; }
+.os-tab:hover { background:#1e1e3e; color:#8888cc; }
+.os-tab.active { background:#0d0d1a; color:#d4af37; border-bottom:2px solid #d4af37; }
+.tab-badge { color:#f39c12; font-size:8px; animation:badge-pulse 0.6s ease-in-out infinite; }
+@keyframes badge-pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.os-content { flex:1; overflow:hidden; display:flex; }
+
+.os-statusbar { height:22px; background:#16162e; border-top:1px solid #2a2a4e; display:flex; align-items:center; padding:0 12px; gap:20px; flex-shrink:0; }
+.sb-item { font-size:5.5px; color:#5555aa; display:flex; align-items:center; gap:5px; }
+.sb-dot { width:6px; height:6px; border-radius:50%; }
+
+/* ─── Staff Room Tab ───────────────────────────────────────────────────── */
+.staffroom-tab { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+.room-viewport { flex:1; overflow:auto; position:relative; background:#0d0d1a; display:flex; align-items:center; justify-content:center; min-height:0; }
+.scanlines { position:absolute; inset:0; pointer-events:none; z-index:100; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px); }
+.room-wrapper { position:relative; border:3px solid #2a2a4e; box-shadow:0 0 0 1px #0d0d1a, 0 0 30px rgba(74,74,138,0.3); border-radius:4px; overflow:hidden; }
+.transition-overlay { position:absolute; inset:0; background:#0d0d1a; z-index:200; }
+@keyframes fade-in  { from{opacity:0} to{opacity:1} }
+@keyframes fade-out { from{opacity:1} to{opacity:0} }
+.fade-in  { animation:fade-in  0.35s ease forwards; }
+.fade-out { animation:fade-out 0.35s ease forwards; }
+
+/* ─── Room tiles ───────────────────────────────────────────────────────── */
+.room-scene { position:relative; overflow:hidden; image-rendering:pixelated; flex-shrink:0; }
+.tile { position:absolute; }
+.tile-floor       { background:#d4a76a; }
+.tile-floor.odd   { background:#c49a5e; }
+.tile-floor::after { content:''; position:absolute; inset:0; border:0.5px solid rgba(0,0,0,0.07); }
+.tile-wall        { background:#4a2c0a; box-shadow:inset 0 -4px 0 #2c1a06, inset 0 4px 0 #6b3f1a; }
+.tile-wall.even   { background:#5c3512; }
+.tile-desk        { background:#c49a5e; }
+.tile-desk.odd    { background:#d4a76a; }
+.tile-terminal    { background:#c49a5e; }
+.tile-door        { background:#7a5230; border-left:2px solid #5c3512; border-right:2px solid #5c3512; }
+.room-label   { position:absolute; top:6px; left:50%; transform:translateX(-50%); font-size:7px; color:#d4af37; text-shadow:1px 1px 0 #000; letter-spacing:2px; pointer-events:none; z-index:5; white-space:nowrap; }
+.wall-deco    { position:absolute; font-size:4.5px; color:#f0c060; background:rgba(60,30,5,0.7); border:1px solid #8b6914; padding:2px 3px; white-space:nowrap; z-index:5; pointer-events:none; }
+.door-label   { position:absolute; font-size:4px; color:#d4af37; z-index:5; pointer-events:none; text-shadow:0 1px 0 #000; white-space:nowrap; }
+
+/* ─── Agent sprite ─────────────────────────────────────────────────────── */
+.agent-wrapper { position:absolute; display:flex; flex-direction:column; align-items:center; transition:left 0.9s linear, top 0.9s linear; z-index:10; cursor:default; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
+@keyframes idle-bob  { 0%,100%{transform:translateY(0)}    50%{transform:translateY(-5px)} }
+@keyframes think-wob { 0%,100%{transform:rotate(0)translateY(0)} 25%{transform:rotate(-4deg)translateY(-2px)} 75%{transform:rotate(4deg)translateY(-2px)} }
+@keyframes talk-bnc  { 0%,100%{transform:translateY(0)scaleY(1)} 30%{transform:translateY(-4px)scaleY(1.05)} 60%{transform:translateY(-1px)scaleY(0.97)} }
+@keyframes work-pls  { 0%,100%{opacity:1} 50%{opacity:0.7} }
+.agent-idle     svg { animation:idle-bob  1.4s ease-in-out infinite; animation-delay:var(--aoff,0ms); }
+.agent-thinking svg { animation:think-wob 0.6s ease-in-out infinite; }
+.agent-talking  svg { animation:talk-bnc  0.5s ease-in-out infinite; }
+.agent-working  svg { animation:work-pls  1.2s ease-in-out infinite; animation-delay:var(--aoff,0ms); }
+.think-dots { position:absolute; top:-22px; left:50%; transform:translateX(-50%); background:rgba(255,255,255,0.93); border:2px solid #1a1030; border-radius:8px; padding:3px 6px; font-size:14px; color:#1a1030; white-space:nowrap; box-shadow:2px 2px 0 #1a1030; z-index:20; }
+.think-dots span { animation:dot-flash 1s infinite; display:inline-block; margin:0 1px; }
+.think-dots span:nth-child(2){animation-delay:0.2s} .think-dots span:nth-child(3){animation-delay:0.4s}
+@keyframes dot-flash { 0%,100%{opacity:0.2} 50%{opacity:1} }
+.agent-tag { margin-top:2px; background:rgba(10,10,26,0.85); border:1.5px solid; border-radius:3px; padding:3px 5px; display:flex; flex-direction:column; align-items:center; gap:2px; white-space:nowrap; }
+.agent-tag .aname { font-size:5px; line-height:1.2; }
+.agent-tag .arole { font-size:4px; line-height:1.2; color:#aaa !important; }
+
+/* ─── Speech bubble ────────────────────────────────────────────────────── */
+.speech-bubble { position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:#f8f8f0; border:2.5px solid #1a1030; border-radius:6px; padding:6px 8px; min-width:80px; max-width:160px; box-shadow:3px 3px 0 #1a1030; z-index:30; animation:bubble-pop 0.15s cubic-bezier(.175,.885,.32,1.275) both; }
+@keyframes bubble-pop { 0%{transform:translateX(-50%) scale(0.6);opacity:0} 100%{transform:translateX(-50%) scale(1);opacity:1} }
+.bubble-text { font-size:5.5px; line-height:1.7; color:#1a1030; word-break:break-word; }
+.bubble-cursor { animation:blink 0.6s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.bubble-tail { position:absolute; bottom:-8px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-top:8px solid #1a1030; }
+.bubble-tail::after { content:''; position:absolute; top:-10px; left:-5px; width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:7px solid #f8f8f0; }
+
+/* ─── Dialog box ───────────────────────────────────────────────────────── */
+.dialog-box { background:#f0f0e8; border:4px solid #1a1030; border-radius:4px; box-shadow:4px 4px 0 #1a1030, inset 0 0 0 2px #fff; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; }
+.dialog-phase { background:#1a1030; padding:5px 10px; display:flex; align-items:center; gap:8px; }
+.phase-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+@keyframes p-green  { 0%,100%{box-shadow:0 0 0 0 rgba(46,204,113,.4)}  50%{box-shadow:0 0 0 4px rgba(46,204,113,0)} }
+@keyframes p-orange { 0%,100%{box-shadow:0 0 0 0 rgba(243,156,18,.4)}  50%{box-shadow:0 0 0 4px rgba(243,156,18,0)} }
+@keyframes p-blue   { 0%,100%{box-shadow:0 0 0 0 rgba(52,152,219,.4)}  50%{box-shadow:0 0 0 4px rgba(52,152,219,0)} }
+@keyframes p-red    { 0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,.4)}   50%{box-shadow:0 0 0 4px rgba(231,76,60,0)} }
+.phase-idle { background:#2ecc71; animation:p-green 2s ease-in-out infinite; }
+.phase-dispatching,.phase-walking_out { background:#f39c12; animation:p-orange 0.6s ease-in-out infinite; }
+.phase-in_breakout,.phase-collaborating { background:#e74c3c; animation:p-red 0.4s ease-in-out infinite; }
+.phase-walking_back { background:#3498db; animation:p-blue 0.5s ease-in-out infinite; }
+.phase-reporting { background:#2ecc71; animation:p-green 0.8s ease-in-out infinite; }
+.phase-label { font-size:6px; color:#8888cc; flex:1; }
+.phase-agents { display:flex; gap:4px; align-items:center; }
+.agent-pip { width:10px; height:10px; border-radius:50%; border:1.5px solid rgba(255,255,255,.3); transition:transform .2s; }
+.agent-pip.talking  { transform:scale(1.4); }
+.agent-pip.thinking { animation:pip-spin   .8s linear infinite; }
+.agent-pip.walking  { animation:pip-bounce .3s ease-in-out infinite; }
+@keyframes pip-spin   { to{transform:rotate(360deg)} }
+@keyframes pip-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+.dialog-log { flex:1; padding:8px 12px 4px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; max-height:80px; }
+.dialog-line { font-size:7px; color:#1a1030; line-height:1.8; display:flex; gap:6px; align-items:flex-start; animation:line-in .2s ease both; }
+@keyframes line-in { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+.dl-arrow { color:#4a90d9; flex-shrink:0; font-size:6px; }
+.dialog-input-row { display:flex; align-items:center; gap:6px; padding:8px 10px; border-top:3px solid #1a1030; background:#e0e0d4; }
+.dialog-input-row.locked { opacity:.7; }
+.di-prompt { font-size:10px; color:#1a1030; flex-shrink:0; }
+.di-input { flex:1; font-family:'Press Start 2P',monospace; font-size:7px; background:white; border:2px solid #1a1030; padding:5px 8px; color:#1a1030; outline:none; border-radius:2px; min-width:0; }
+.di-input:focus { box-shadow:0 0 0 2px #4a90d9; }
+.di-input::placeholder { color:#999; }
+.di-input:disabled { background:#ddd; cursor:not-allowed; }
+.di-send, .di-add { font-family:'Press Start 2P',monospace; font-size:6px; padding:6px 8px; border:2px solid #1a1030; border-radius:2px; cursor:pointer; box-shadow:2px 2px 0 #1a1030; white-space:nowrap; transition:transform .1s, box-shadow .1s; }
+.di-send { background:#2ecc71; color:#0d1a0d; }
+.di-send:hover:not(:disabled) { transform:translate(-1px,-1px); box-shadow:3px 3px 0 #1a1030; }
+.di-send:active:not(:disabled) { transform:translate(1px,1px); box-shadow:1px 1px 0 #1a1030; }
+.di-send:disabled { background:#aaa; cursor:not-allowed; box-shadow:none; }
+.di-add { background:#3498db; color:#fff; }
+.di-add:hover { transform:translate(-1px,-1px); box-shadow:3px 3px 0 #1a1030; }
+
+/* ─── Breakout room ────────────────────────────────────────────────────── */
+.breakout-scene { display:flex; width:100%; height:100%; }
+.br-room { position:relative; width:420px; flex-shrink:0; background:#b8966a; overflow:hidden; }
+.br-floor { position:absolute; inset:0; display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(7,1fr); }
+.br-tile { background:#d4a76a; } .br-tile.odd { background:#c49a5e; }
+.br-wall { position:absolute; z-index:2; }
+.br-wall.top    { top:0; left:0; right:0; height:10px; background:linear-gradient(#2c1a06,#6b3f1a); }
+.br-wall.bottom { bottom:0; left:0; right:0; height:10px; background:linear-gradient(#6b3f1a,#2c1a06); }
+.br-wall.left   { top:0; bottom:0; left:0; width:10px; background:linear-gradient(90deg,#2c1a06,#6b3f1a); }
+.br-wall.right  { top:0; bottom:0; right:0; width:10px; background:linear-gradient(90deg,#6b3f1a,#2c1a06); }
+.br-room-label  { position:absolute; top:14px; left:50%; transform:translateX(-50%); font-size:6px; color:#d4af37; text-shadow:1px 1px 0 #000; z-index:5; pointer-events:none; letter-spacing:1px; white-space:nowrap; }
+.br-door { position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:5; display:flex; flex-direction:column; align-items:center; }
+.br-door-label { font-size:4px; color:#d4af37; margin-top:2px; white-space:nowrap; }
+.conference-table { position:absolute; left:50%; top:50%; transform:translate(-50%,-55%); z-index:3; }
+.chair { position:absolute; width:20px; height:20px; background:#5c3512; border:2px solid #3d2308; border-radius:3px; z-index:3; }
+.chair::after { content:''; position:absolute; top:2px; left:2px; right:2px; height:8px; background:#8b5a2b; border-radius:2px; }
+.br-whiteboard-panel { flex:1; display:flex; flex-direction:column; gap:8px; padding:12px; background:#0d0d1a; border-left:3px solid #2a2a4e; overflow-y:auto; }
+
+/* ─── Whiteboard ───────────────────────────────────────────────────────── */
+.whiteboard { width:100%; background:#1a1a2e; border:3px solid #4a4a6a; border-radius:4px; overflow:hidden; box-shadow:inset 0 2px 8px rgba(0,0,0,.4); }
+.wb-header { background:#2a2a4e; border-bottom:2px solid #4a4a6a; padding:6px 10px; display:flex; align-items:center; justify-content:space-between; }
+.wb-title  { font-size:7px; color:#8888cc; letter-spacing:1px; }
+.wb-tray   { display:flex; gap:4px; }
+.wb-marker { width:10px; height:5px; border-radius:2px; opacity:.8; }
+.wb-surface { position:relative; min-height:250px; background:#f5f5ee; background-image:linear-gradient(rgba(100,120,200,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(100,120,200,.06) 1px,transparent 1px); background-size:24px 24px; padding:8px; }
+.wb-entry { position:absolute; font-size:7px; line-height:1.6; opacity:0; transform:translateX(-6px); transition:opacity .4s ease, transform .4s ease; white-space:nowrap; text-shadow:0 1px 0 rgba(255,255,255,.5); }
+.wb-entry.visible { opacity:1; transform:translateX(0); }
+.wb-empty { font-size:6px; color:#bbb; text-align:center; padding-top:80px; }
+
+/* ─── File exchange ────────────────────────────────────────────────────── */
+.file-exchange { background:#0f0f2a; border:2px solid #2a2a4e; border-radius:4px; padding:8px 10px; }
+.fe-label { font-size:6px; color:#8888cc; margin-bottom:6px; }
+.fe-files { display:flex; flex-direction:column; gap:4px; }
+.fe-file  { display:flex; align-items:center; gap:6px; animation:file-slide .5s ease both; }
+@keyframes file-slide { 0%{opacity:0;transform:translateX(-10px)} 100%{opacity:1;transform:translateX(0)} }
+.fe-icon { font-size:12px; }
+.fe-name { font-size:5px; color:#4a90d9; }
+
+/* ─── Modal ────────────────────────────────────────────────────────────── */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(2px); }
+.modal-box { background:#f0f0e8; border:4px solid #1a1030; border-radius:4px; box-shadow:6px 6px 0 #1a1030; padding:20px; width:320px; display:flex; flex-direction:column; gap:14px; animation:modal-pop .2s cubic-bezier(.175,.885,.32,1.275) both; }
+@keyframes modal-pop { from{transform:scale(.85);opacity:0} to{transform:scale(1);opacity:1} }
+.modal-title { font-size:10px; color:#1a1030; text-align:center; border-bottom:3px solid #1a1030; padding-bottom:10px; }
+.modal-field { display:flex; flex-direction:column; gap:6px; }
+.modal-field label { font-size:6px; color:#666; letter-spacing:1px; }
+.modal-input { font-family:'Press Start 2P',monospace; font-size:8px; padding:6px 8px; border:2px solid #1a1030; border-radius:2px; background:white; color:#1a1030; outline:none; width:100%; }
+.modal-input:focus { box-shadow:0 0 0 2px #4a90d9; }
+.role-pills { display:flex; flex-wrap:wrap; gap:4px; }
+.role-pill { font-family:'Press Start 2P',monospace; font-size:5px; padding:4px 6px; border:2px solid #1a1030; background:#e0e0d4; color:#1a1030; cursor:pointer; border-radius:2px; }
+.role-pill.active { background:#1a1030; color:#f0f0e8; }
+.color-swatches { display:flex; gap:6px; flex-wrap:wrap; }
+.swatch { width:22px; height:22px; border-radius:3px; border:2px solid transparent; cursor:pointer; transition:transform .1s; }
+.swatch:hover { transform:scale(1.15); }
+.swatch.selected { border-color:#1a1030; box-shadow:0 0 0 2px white,0 0 0 4px #1a1030; transform:scale(1.1); }
+.modal-preview { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px; background:#d4a76a; border:2px solid #1a1030; border-radius:3px; }
+.preview-name { font-size:7px; }
+.preview-role { font-size:5px; color:#555; }
+.modal-agent-count { font-size:5.5px; color:#888; text-align:center; }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; }
+.modal-cancel, .modal-confirm { font-family:'Press Start 2P',monospace; font-size:6px; padding:7px 10px; border:2px solid #1a1030; border-radius:2px; cursor:pointer; box-shadow:2px 2px 0 #1a1030; transition:transform .1s,box-shadow .1s; }
+.modal-cancel  { background:#e0e0d4; color:#1a1030; }
+.modal-confirm { background:#2ecc71; color:#0d1a0d; }
+.modal-confirm:disabled { background:#aaa; cursor:not-allowed; box-shadow:none; }
+.modal-cancel:hover, .modal-confirm:hover:not(:disabled) { transform:translate(-1px,-1px); box-shadow:3px 3px 0 #1a1030; }
+
+/* ─── Placeholder ──────────────────────────────────────────────────────── */
+.placeholder-tab { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+.ph-icon  { font-size:48px; }
+.ph-title { font-size:14px; color:#8888cc; }
+.ph-desc  { font-size:8px; color:#4a4a6a; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useReducer, useContext, createContext, useCallback, useRef } = React;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════
+const T = 48;
+
+const STAFF_DESK_POSITIONS = [
+  { x: 2*T+8, y: 2*T+4 }, { x: 5*T+8, y: 2*T+4 }, { x: 8*T+8, y: 2*T+4 },
+  { x: 2*T+8, y: 4*T+4 }, { x: 5*T+8, y: 4*T+4 },
+];
+
+const BREAKOUT_SEAT_POSITIONS = [
+  { x:190, y:90 }, { x:80, y:190 }, { x:300, y:190 }, { x:135, y:280 }, { x:245, y:280 },
+];
+
+const STAFF_MAP = [
+  [1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,2,0,0,2,0,0,2,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,2,0,0,2,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,3,0,0,0,0,0,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,1],
+  [1,1,1,4,1,1,1,1,4,1,1,1],
+];
+
+const TILE_CLASS = { 0:'floor', 1:'wall', 2:'desk', 3:'terminal', 4:'door' };
+
+const PRESET_COLORS = [
+  { color:'#e74c3c', hat:'#c0392b' }, { color:'#3498db', hat:'#2980b9' },
+  { color:'#2ecc71', hat:'#27ae60' }, { color:'#9b59b6', hat:'#8e44ad' },
+  { color:'#f39c12', hat:'#d68910' }, { color:'#1abc9c', hat:'#17a589' },
+  { color:'#e67e22', hat:'#ca6f1e' }, { color:'#e91e63', hat:'#c2185b' },
+];
+const PRESET_ROLES = ['Researcher','Developer','Designer','Analyst','Writer','Strategist','QA','PM'];
+
+const PHASE_LABELS = {
+  idle:'● READY', dispatching:'◎ DISPATCHING', walking_out:'→ HEADING OUT',
+  in_breakout:'⚑ IN BREAKOUT', collaborating:'⚙ COLLABORATING',
+  walking_back:'← RETURNING', reporting:'✓ REPORTING',
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════════════════════
+const RICKY_SYSTEM_PROMPT = `You are Ricky Hale, a senior due diligence and research analyst. Career: McKinsey & Company → KKR Senior Analyst (PE due diligence) → Big 4 advisory (cross-border M&A) → private family office (SME acquisitions via AI/digital) → independent boutique (early-stage vetting & regulatory risk).
+
+Core domains: Business & M&A, Finance & Investment, Legal & Compliance.
+
+Output format, structured reports with: 1. Summary, 2. Key Findings, 3. Risk Flags (High/Med/Low), 4. Actionable Recommendations, 5. Data Gaps & Limitations.
+
+Every finding carries a confidence level (High/Medium/Low). Hard rules: always disclose confidence; never speculate on legal outcomes; always recommend professional sign-off; never make buy/invest/proceed recommendations; report facts not intent. Never fill data gaps with assumption.`;
+
+const MAURICE_SYSTEM_PROMPT = `You are Maurice, a senior paid performance marketing strategist. Direct, no-nonsense, obsessively results-focused. Specialist in Meta Ads (inc. Meta Ad Library competitor analysis), LinkedIn Ads, and TikTok UGC campaigns with micro-influencers.
+
+Style: Blunt, evidence-backed, action-oriented. You don't sugarcoat. When something isn't working, you say so, with data, stats, and facts. You always close pushback with a concrete suggestion or follow-up question.
+
+Expertise: B2B, SaaS, and DTC brands with monthly ad budgets of £5k–£20k. Primary market: UK. Secondary: Poland (flag platform/cultural differences when relevant).
+
+New Client Protocol: Always offer full funnel audit, competitor audit via Meta Ad Library, web traffic competitor analysis, social media competitor comparison table, competitor past digital campaign analysis, and agree reporting cadence.
+
+Full Audit covers (in order): AIDA, TOFU, CPM, SOV, CTR, MOFU, MQL, KPIs, BOFU, CR, CPA, ROAS, AOV, LTV/CLV, CAC, NPS, plus web traffic analysis, social comparison table, and competitor campaign analysis. Output as "[Client Name], Performance Audit & Improvement Roadmap".
+
+Core KPIs: CTR, Add to Cart rate, CPA, AOV, ROAS. Actively push back on vanity metrics (impressions, reach, engagement rate in isolation, follower counts).
+
+Three Strikes Rule: Push back clearly (1st), reiterate concisely (2nd), comply but document risk (3rd). Never refuse outright after three requests.
+
+Channel expertise:
+- Meta Ads: Full campaign structures, actual ad copy (primary text, headlines, descriptions, hook variations), creative format rationale by funnel stage.
+- LinkedIn Ads: Lead Gen Forms, Thought Leadership Amplification, ABM-style targeting with specific job titles/seniority/company size parameters.
+- TikTok UGC: Creator tiers (5k–50k, 10k–100k), performance/flat-fee/hybrid deal structures, outreach scripts, contracts, creator briefs, Spark Ads media strategy.
+
+Deliverables: Campaign briefs, ad copy variations (A/B ready), audience targeting specs, budget allocation frameworks, reporting templates.
+
+Polish market: Proactively flag LinkedIn penetration differences, TikTok demographic nuances, localisation beyond translation, payment preferences, regulatory differences.
+
+Communication: Lead with recommendations, back every suggestion with reasoning, use plain language, structure all outputs with headers and action items ready to hand off.`;
+
+const DEFAULT_AGENTS = [
+  { id:'alpha',   name:'Alpha',      role:'Team Lead',    color:'#4a6fa5', hat:'#2c4f7a', skinColor:'#f0c08a', shoeColor:'#1a1030', position:{x:STAFF_DESK_POSITIONS[0].x, y:STAFF_DESK_POSITIONS[0].y}, status:'idle', speech:null, inBreakout:false, aoff:0,   hasGlasses:false, systemPrompt:null },
+  { id:'ricky',   name:'Ricky Hale', role:'DD Analyst',   color:'#e74c3c', hat:'#8b0000', skinColor:'#f0c08a', shoeColor:'#1a1030', position:{x:STAFF_DESK_POSITIONS[1].x, y:STAFF_DESK_POSITIONS[1].y}, status:'idle', speech:null, inBreakout:false, aoff:200, hasGlasses:true,  systemPrompt:RICKY_SYSTEM_PROMPT },
+  { id:'maurice', name:'Maurice',    role:'Perf. Marketing', color:'#1a4a9e', hat:'#0f2d6b', skinColor:'#7a3d1a', shoeColor:'#f5f5f5', position:{x:STAFF_DESK_POSITIONS[2].x, y:STAFF_DESK_POSITIONS[2].y}, status:'idle', speech:null, inBreakout:false, aoff:400, hasGlasses:false, systemPrompt:MAURICE_SYSTEM_PROMPT },
+  { id:'delta',   name:'Delta',      role:'Designer',     color:'#9b59b6', hat:'#8e44ad', skinColor:'#f0c08a', shoeColor:'#1a1030', position:{x:STAFF_DESK_POSITIONS[3].x, y:STAFF_DESK_POSITIONS[3].y}, status:'idle', speech:null, inBreakout:false, aoff:100, hasGlasses:false, systemPrompt:null },
+  { id:'epsilon', name:'Epsilon',    role:'Analyst',      color:'#f39c12', hat:'#d68910', skinColor:'#f0c08a', shoeColor:'#1a1030', position:{x:STAFF_DESK_POSITIONS[4].x, y:STAFF_DESK_POSITIONS[4].y}, status:'idle', speech:null, inBreakout:false, aoff:300, hasGlasses:false, systemPrompt:null },
+];
+
+const INIT_STATE = {
+  phase: 'idle', currentView:'staff', agents: DEFAULT_AGENTS,
+  prompt:'', dialogLines:['Welcome to StaffRoom! 🏢','Type a task below and hit SEND.'],
+  whiteboardEntries:[], transitioning:false,
+};
+
+function reducer(state, action) {
+  switch(action.type) {
+    case 'SET_PROMPT':    return { ...state, prompt: action.v };
+    case 'SET_PHASE':     return { ...state, phase: action.v };
+    case 'SET_VIEW':      return { ...state, currentView: action.v };
+    case 'SET_TRANS':     return { ...state, transitioning: action.v };
+    case 'UPDATE_AGENT':  return { ...state, agents: state.agents.map(a => a.id===action.v.id ? {...a,...action.v} : a) };
+    case 'ADD_DIALOG':    return { ...state, dialogLines:[...state.dialogLines.slice(-6), action.v] };
+    case 'CLEAR_DIALOG':  return { ...state, dialogLines:[] };
+    case 'ADD_WB':        return { ...state, whiteboardEntries:[...state.whiteboardEntries, action.v] };
+    case 'CLEAR_WB':      return { ...state, whiteboardEntries:[] };
+    case 'ADD_AGENT': {
+      const idx = state.agents.length % STAFF_DESK_POSITIONS.length;
+      const pos = STAFF_DESK_POSITIONS[idx] || {x:3*T,y:5*T};
+      return { ...state, agents:[...state.agents, {
+        id:'agent_'+Date.now(), name:action.v.name, role:action.v.role,
+        color:action.v.color, hat:action.v.hat,
+        hasGlasses:  action.v.hasGlasses  || false,
+        skinColor:   action.v.skinColor   || '#f0c08a',
+        shoeColor:   action.v.shoeColor   || '#1a1030',
+        trouserColor:action.v.trouserColor|| '#1a2a4a',
+        systemPrompt:action.v.systemPrompt|| null,
+        position:{...pos}, status:'idle', speech:null, inBreakout:false, aoff:Math.random()*600,
+      }]};
+    }
+    case 'REMOVE_AGENT': return { ...state, agents: state.agents.filter(a=>a.id!==action.v) };
+    default: return state;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTEXT
+// ═══════════════════════════════════════════════════════════════════════════
+const GameCtx = createContext(null);
+
+function GameProvider({ children }) {
+  const [state, dispatch] = useReducer(reducer, INIT_STATE);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  const d = useCallback((type, v) => dispatch({ type, v }), []);
+
+  const submitPrompt = useCallback(() => {
+    const prompt = stateRef.current.prompt.trim();
+    if (!prompt || stateRef.current.phase !== 'idle') return;
+    d('SET_PHASE','dispatching');
+    d('CLEAR_WB');
+    d('CLEAR_DIALOG');
+    d('ADD_DIALOG', `📋 Task: "${prompt.slice(0,42)}${prompt.length>42?'…':''}"`);
+    runWorkflow(prompt, d, stateRef);
+  }, [d]);
+
+  return <GameCtx.Provider value={{ state, d, submitPrompt }}>{children}</GameCtx.Provider>;
+}
+
+function useGame() { return useContext(GameCtx); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WORKFLOW
+// ═══════════════════════════════════════════════════════════════════════════
+function at(ms, fn) { return setTimeout(fn, ms); }
+
+function runWorkflow(prompt, d, stateRef) {
+  const agents = stateRef.current.agents;
+  const ids = agents.slice(0, Math.min(3, agents.length)).map(a=>a.id);
+  const DOOR_X = 3*T, DOOR_Y = 8*T - 10;
+
+  d('UPDATE_AGENT', { id:ids[0], status:'thinking', speech:'New task incoming!' });
+  at(400, () => {
+    ids.slice(1).forEach((id,i) => d('UPDATE_AGENT',{id, status:'thinking', speech:['On it! 🔍','Ready! ⚙️'][i]}));
+  });
+
+  at(1500, () => {
+    d('ADD_DIALOG','🚶 Agents heading to breakout room…');
+    d('SET_PHASE','walking_out');
+    ids.forEach((id,i) => d('UPDATE_AGENT',{id, status:'walking', speech:null, position:{x:DOOR_X+(i-1)*22, y:DOOR_Y}}));
+  });
+
+  at(3100, () => d('SET_TRANS', true));
+  at(3600, () => {
+    d('SET_VIEW','breakout');
+    d('SET_PHASE','in_breakout');
+    d('SET_TRANS', false);
+    ids.forEach((id,i) => {
+      const seat = BREAKOUT_SEAT_POSITIONS[i];
+      d('UPDATE_AGENT',{id, inBreakout:true, status:'walking', position:{x:seat.x, y:10}});
+      at(150+i*60, () => d('UPDATE_AGENT',{id, position:seat}));
+    });
+  });
+
+  const msgs = buildMsgs(prompt, ids, stateRef.current.agents);
+  msgs.forEach((msg,i) => {
+    at(5000+i*2200, () => {
+      d('UPDATE_AGENT',{id:msg.id, status:'talking', speech:msg.text});
+      if(msg.wb) d('ADD_WB', msg.wb);
+      at(1900, () => d('UPDATE_AGENT',{id:msg.id, speech:null, status:'working'}));
+    });
+  });
+
+  const doneAt = 5000 + msgs.length*2200 + 800;
+  at(doneAt, () => {
+    d('SET_PHASE','walking_back');
+    d('ADD_DIALOG','✅ Work complete! Returning…');
+    ids.forEach(id => d('UPDATE_AGENT',{id, status:'walking', speech:null, position:{x:190, y:10}}));
+  });
+
+  at(doneAt+1200, () => d('SET_TRANS',true));
+  at(doneAt+1700, () => {
+    d('SET_VIEW','staff');
+    d('SET_TRANS',false);
+    ids.forEach((id,i) => {
+      const home = STAFF_DESK_POSITIONS[i] || STAFF_DESK_POSITIONS[0];
+      d('UPDATE_AGENT',{id, inBreakout:false, status:'walking', position:{x:DOOR_X, y:DOOR_Y}});
+      at(200+i*80, () => d('UPDATE_AGENT',{id, position:home}));
+    });
+  });
+
+  at(doneAt+3500, () => {
+    d('SET_PHASE','reporting');
+    d('UPDATE_AGENT',{id:ids[0], status:'talking', speech:'✓ Task complete!'});
+    d('ADD_DIALOG','🎉 Task completed by your agents!');
+    d('ADD_DIALOG','📋 Check the whiteboard for results.');
+  });
+
+  at(doneAt+6500, () => {
+    d('SET_PHASE','idle');
+    ids.forEach(id => d('UPDATE_AGENT',{id, status:'idle', speech:null}));
+    d('SET_PROMPT','');
+    d('ADD_DIALOG','💬 Ready for next task.');
+  });
+}
+
+function buildMsgs(prompt, ids, agents) {
+  const short = prompt.length>30 ? prompt.slice(0,30)+'…' : prompt;
+  const gc  = id => (agents.find(a=>a.id===id)||{}).color||'#fff';
+  const who = id => (agents.find(a=>a.id===id)||{}).id;
+
+  const voice = (id, {ricky, maurice, generic}) => {
+    const w = who(id);
+    if(w==='ricky')   return ricky;
+    if(w==='maurice') return maurice;
+    return generic;
+  };
+
+  const lead = ids[0], mid = ids[1]||ids[0], last = ids[2]||ids[0];
+
+  return [
+    { id:lead, text: voice(lead,{
+        ricky:   `Scoping the brief: ${short}`,
+        maurice: `Right. What's the brief? ${short}`,
+        generic: `Let's tackle: ${short}`,
+      }), wb:{text:`📋 ${short}`, x:12,y:22, color:gc(lead)}},
+
+    { id:mid, text: voice(mid,{
+        ricky:   'Running source checks… 🔍',
+        maurice: 'Pulling Meta Ad Library data 🔍',
+        generic: 'Researching now… 🔍',
+      }), wb:{text: voice(mid,{ricky:'🔍 Source verification', maurice:'🔍 Competitor ad audit', generic:'🔍 Research phase'}), x:12,y:52, color:gc(mid)}},
+
+    { id:last, text: voice(last,{
+        ricky:   'Stress-testing assumptions',
+        maurice: 'CTR's weak. Fixing the hook.',
+        generic: 'Building solution ⚙️',
+      }), wb:{text: voice(last,{ricky:'⚠️ Risk flags: 2 Medium', maurice:'📉 CTR below benchmark', generic:'⚙️ Implementation'}), x:12,y:82, color:gc(last)}},
+
+    { id:lead, text: voice(lead,{
+        ricky:   'Data gaps documented 📝',
+        maurice: 'Budget realloc drafted 📝',
+        generic: 'Document as you go 📝',
+      }), wb:{text: voice(lead,{ricky:'📝 Gaps logged', maurice:'📝 Budget framework', generic:'📝 Docs & notes'}), x:12,y:112, color:gc(lead)}},
+
+    { id:mid, text: voice(mid,{
+        ricky:   'Confidence: Medium, gaps flagged',
+        maurice: 'ROAS target: 4× minimum 📊',
+        generic: '3 key insights found! 💡',
+      }), wb:{text: voice(mid,{ricky:'📊 Confidence levels set', maurice:'📊 ROAS: 4× target', generic:'💡 Insights ×3'}), x:12,y:142, color:gc(mid)}},
+
+    { id:last, text: voice(last,{
+        ricky:   'No legal blockers found ✅',
+        maurice: 'Copy variants ready. A/B live. ✅',
+        generic: 'Tests passing ✅',
+      }), wb:{text: voice(last,{ricky:'✅ Legal: clear', maurice:'✅ 3 copy variants ready', generic:'✅ Tests pass'}), x:12,y:172, color:gc(last)}},
+
+    { id:lead, text: voice(lead,{
+        ricky:   'Report ready. Recommend sign-off. 🎯',
+        maurice: 'Campaign brief done. Ship it. 🎯',
+        generic: 'Excellent work, team! 🎯',
+      }), wb:{text:'🎯 DONE!', x:12,y:202, color:gc(lead)}},
+  ];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SPRITE COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════
+function SpeechBubble({ text, color }) {
+  const [shown, setShown] = useState('');
+  useEffect(() => {
+    setShown('');
+    let i=0;
+    const id = setInterval(() => { i++; setShown(text.slice(0,i)); if(i>=text.length) clearInterval(id); }, 35);
+    return () => clearInterval(id);
+  }, [text]);
+  return (
+    <div className="speech-bubble">
+      <div className="bubble-text">{shown}<span className="bubble-cursor" style={{color}}>▌</span></div>
+      <div className="bubble-tail" />
+    </div>
+  );
+}
+
+function AgentProfileCard({ agent, onClose }) {
+  const domains = agent.id === 'ricky'
+    ? ['Business & M&A','Finance & Investment','Legal & Compliance']
+    : agent.id === 'maurice'
+    ? ['Meta Ads & Ad Library','LinkedIn Ads (B2B/ABM)','TikTok UGC & Micro-Influencers']
+    : null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" style={{width:360}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',alignItems:'center',gap:12,borderBottom:'3px solid #1a1030',paddingBottom:10,marginBottom:10}}>
+          <svg width="48" height="60" viewBox="0 0 8 10" style={{imageRendering:'pixelated',flexShrink:0}}>
+            <rect x="2" y="0" width="4" height="1" fill={agent.hat||agent.color}/>
+            <rect x="1" y="0.5" width="6" height="1.2" fill={agent.hat||agent.color}/>
+            <rect x="1" y="1" width="6" height="4" fill={agent.skinColor||'#f0c08a'}/>
+            <rect x="2" y="2.5" width="1.2" height="1.2" fill="#1a1030"/>
+            <rect x="4.8" y="2.5" width="1.2" height="1.2" fill="#1a1030"/>
+            {agent.hasGlasses && <>
+              <rect x="1.55" y="2.05" width="2.05" height="1.75" rx="0.38" fill="rgba(180,220,255,0.18)" stroke="#2c1a06" strokeWidth="0.28"/>
+              <rect x="4.38" y="2.05" width="2.05" height="1.75" rx="0.38" fill="rgba(180,220,255,0.18)" stroke="#2c1a06" strokeWidth="0.28"/>
+              <rect x="3.6" y="2.72" width="0.78" height="0.22" fill="#2c1a06"/>
+            </>}
+            <rect x="2.8" y="4.2" width="2.4" height="0.6" rx="0.3" fill="#8b2020"/>
+            <rect x="1.5" y="5" width="5" height="3" fill={agent.color}/>
+            <polygon points="3,5 4,5 3.3,6.5" fill="#f0f0e8" opacity="0.9"/>
+            <polygon points="5,5 4,5 4.7,6.5" fill="#f0f0e8" opacity="0.9"/>
+            <rect x="3.7" y="5" width="0.6" height="2.8" fill="#f0f0e8" opacity="0.7"/>
+          </svg>
+          <div>
+            <div style={{fontSize:10,color:agent.color,marginBottom:4}}>{agent.name}</div>
+            <div style={{fontSize:6,color:'#888'}}>{agent.role}</div>
+          </div>
+        </div>
+        {domains && (
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:6,color:'#888',marginBottom:6,letterSpacing:1}}>CORE DOMAINS</div>
+            {domains.map(d=>(
+              <div key={d} style={{fontSize:5.5,color:'#4a90d9',marginBottom:4,paddingLeft:8}}>▶ {d}</div>
+            ))}
+          </div>
+        )}
+        {agent.systemPrompt && (
+          <div style={{background:'#e8e8e0',border:'2px solid #1a1030',borderRadius:3,padding:'8px 10px',maxHeight:160,overflowY:'auto'}}>
+            <div style={{fontSize:5,color:'#555',letterSpacing:0.5,marginBottom:5}}>SYSTEM PROMPT</div>
+            <div style={{fontSize:5.5,color:'#1a1030',lineHeight:2,whiteSpace:'pre-wrap'}}>{agent.systemPrompt}</div>
+          </div>
+        )}
+        {!agent.systemPrompt && (
+          <div style={{fontSize:6,color:'#888',textAlign:'center',padding:'10px 0'}}>No system prompt assigned.</div>
+        )}
+        <div className="modal-actions" style={{marginTop:10}}>
+          <button className="modal-confirm" onClick={onClose}>CLOSE</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AgentSprite({ agent }) {
+  const [frame, setFrame] = useState(0);
+  const [showProfile, setShowProfile] = useState(false);
+  const timerRef = useRef(null);
+  useEffect(() => {
+    if(agent.status==='walking') {
+      timerRef.current = setInterval(()=>setFrame(f=>(f+1)%4),150);
+    } else { clearInterval(timerRef.current); setFrame(0); }
+    return ()=>clearInterval(timerRef.current);
+  },[agent.status]);
+
+  const lly = (frame===1||frame===3) ? 7.5 : 6.5;
+  const rly = (frame===0||frame===2) ? 7.5 : 6.5;
+
+  return (
+    <>
+    {showProfile && <AgentProfileCard agent={agent} onClose={()=>setShowProfile(false)}/>}
+    <div
+      className={`agent-wrapper agent-${agent.status}`}
+      style={{ left:agent.position.x, top:agent.position.y, '--aoff':`${agent.aoff}ms`, cursor:'pointer' }}
+      onClick={()=>setShowProfile(true)}
+      title={`${agent.name}, click to view profile`}
+    >
+      {agent.status==='thinking' && <div className="think-dots"><span>.</span><span>.</span><span>.</span></div>}
+      <svg width="48" height="64" viewBox="0 0 8 10" style={{imageRendering:'pixelated',display:'block'}}>
+        <ellipse cx="4" cy="9.7" rx="2.5" ry="0.5" fill="rgba(0,0,0,0.2)" />
+        <rect x="2" y="0"   width="4" height="1"   fill={agent.hat} />
+        <rect x="1" y="0.5" width="6" height="1.2" fill={agent.hat} />
+        <rect x="1" y="1"   width="6" height="4"   fill={agent.skinColor||'#f0c08a'} />
+        <rect x="2"   y="2.5" width="1.2" height="1.2" fill="#1a1030" />
+        <rect x="4.8" y="2.5" width="1.2" height="1.2" fill="#1a1030" />
+        <rect x="2.2" y="2.5" width="0.5" height="0.5" fill="white" />
+        <rect x="5"   y="2.5" width="0.5" height="0.5" fill="white" />
+        {/* Glasses */}
+        {agent.hasGlasses && <>
+          <rect x="1.55" y="2.05" width="2.05" height="1.75" rx="0.38" fill="rgba(180,220,255,0.18)" stroke="#2c1a06" strokeWidth="0.28"/>
+          <rect x="4.38" y="2.05" width="2.05" height="1.75" rx="0.38" fill="rgba(180,220,255,0.18)" stroke="#2c1a06" strokeWidth="0.28"/>
+          <rect x="3.6"  y="2.72" width="0.78" height="0.22" fill="#2c1a06"/>
+          <line x1="1.55" y1="2.72" x2="0.7" y2="2.52" stroke="#2c1a06" strokeWidth="0.26"/>
+          <line x1="6.43" y1="2.72" x2="7.3" y2="2.52" stroke="#2c1a06" strokeWidth="0.26"/>
+        </>}
+        {(agent.status==='talking'||agent.status==='thinking')
+          ? <rect x="3" y="4.2" width="2" height="0.9" rx="0.3" fill="#8b2020" />
+          : <rect x="2.8" y="4.3" width="2.4" height="0.6" rx="0.3" fill="#8b2020" />}
+        {/* Body / jacket */}
+        <rect x="1.5" y="5"   width="5"   height="3"   fill={agent.color} />
+        {/* Suit lapels */}
+        <polygon points="3,5 4,5 3.3,6.5" fill="#f0f0e8" opacity="0.9"/>
+        <polygon points="5,5 4,5 4.7,6.5" fill="#f0f0e8" opacity="0.9"/>
+        {/* Shirt strip between lapels */}
+        <rect x="3.7" y="5" width="0.6" height="2.8" fill="#f0f0e8" opacity="0.7"/>
+        {/* Jacket button */}
+        <circle cx="4" cy="7.2" r="0.25" fill="#f0f0e8" opacity="0.8"/>
+        {/* Arms, skin */}
+        <rect x="0.2" y="5"   width="1.3" height="2.5" rx="0.4" fill={agent.skinColor||'#f0c08a'} />
+        <rect x="6.5" y="5"   width="1.3" height="2.5" rx="0.4" fill={agent.skinColor||'#f0c08a'} />
+        {/* Jacket sleeves over arms */}
+        <rect x="0.2" y="5"   width="1.3" height="1.8" rx="0.4" fill={agent.color} />
+        <rect x="6.5" y="5"   width="1.3" height="1.8" rx="0.4" fill={agent.color} />
+        {/* Trousers */}
+        <rect x="1.5" y={lly} width="2"   height="2.5" rx="0.3" fill={agent.trouserColor||'#1a2a4a'} />
+        <rect x="4.5" y={rly} width="2"   height="2.5" rx="0.3" fill={agent.trouserColor||'#1a2a4a'} />
+        {/* Shoes */}
+        <rect x="1.2" y={lly+2} width="2.6" height="0.8" rx="0.3" fill={agent.shoeColor||'#1a1030'} />
+        <rect x="4.2" y={rly+2} width="2.6" height="0.8" rx="0.3" fill={agent.shoeColor||'#1a1030'} />
+        {/* Shoe highlight for white trainers */}
+        {agent.shoeColor && agent.shoeColor.toLowerCase().startsWith('#f') && <>
+          <rect x="1.4" y={lly+2.1} width="1.2" height="0.3" rx="0.15" fill="rgba(255,255,255,0.55)"/>
+          <rect x="4.4" y={rly+2.1} width="1.2" height="0.3" rx="0.15" fill="rgba(255,255,255,0.55)"/>
+          <rect x="1.2" y={lly+2.55} width="2.6" height="0.18" rx="0.09" fill="#cce0ff" opacity="0.6"/>
+          <rect x="4.2" y={rly+2.55} width="2.6" height="0.18" rx="0.09" fill="#cce0ff" opacity="0.6"/>
+        </>}
+      </svg>
+      <div className="agent-tag" style={{borderColor:agent.color}}>
+        <span className="aname" style={{color:agent.color}}>{agent.name}</span>
+        <span className="arole">{agent.role}</span>
+      </div>
+      {agent.speech && <SpeechBubble text={agent.speech} color={agent.color} />}
+    </div>
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TILE GRAPHICS
+// ═══════════════════════════════════════════════════════════════════════════
+function DeskSVG() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 12 12" style={{imageRendering:'pixelated',position:'absolute',inset:0}}>
+      <rect x="1" y="3" width="10" height="7" fill="#8b6914" rx="0.5"/>
+      <rect x="1" y="3" width="10" height="1.5" fill="#a07820" rx="0.5"/>
+      <rect x="3" y="0.5" width="6" height="4" fill="#1a1a2e" rx="0.5"/>
+      <rect x="3.5" y="1" width="5" height="3" fill="#162040" rx="0.3"/>
+      <rect x="4" y="1.3" width="4" height="2.2" fill="#1e3a5f" rx="0.2"/>
+      <rect x="4.3" y="1.5" width="1.5" height="0.8" fill="#4a90d9" opacity="0.6" rx="0.2"/>
+      <rect x="5.5" y="4.5" width="1" height="1" fill="#555"/>
+      <rect x="3" y="8" width="6" height="1.5" fill="#2a2a3e" rx="0.3"/>
+      <rect x="3.3" y="8.3" width="0.8" height="0.5" fill="#3a3a5e" rx="0.1"/>
+      <rect x="4.3" y="8.3" width="0.8" height="0.5" fill="#3a3a5e" rx="0.1"/>
+      <rect x="5.3" y="8.3" width="0.8" height="0.5" fill="#3a3a5e" rx="0.1"/>
+      <rect x="6.3" y="8.3" width="0.8" height="0.5" fill="#3a3a5e" rx="0.1"/>
+      <rect x="7.3" y="8.3" width="0.8" height="0.5" fill="#3a3a5e" rx="0.1"/>
+      <ellipse cx="9.5" cy="8.8" rx="0.6" ry="0.8" fill="#2a2a3e"/>
+      <rect x="1.5" y="5" width="1.5" height="2" fill="#f0f0e0" opacity="0.8"/>
+    </svg>
+  );
+}
+
+function TerminalSVG() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 12 12" style={{imageRendering:'pixelated',position:'absolute',inset:0}}>
+      <rect x="1" y="1" width="10" height="8" fill="#1a1a2e" rx="1"/>
+      <rect x="1.5" y="1.5" width="9" height="7" fill="#0d0d1a" rx="0.5"/>
+      <rect x="2" y="2" width="8" height="5" fill="#0a1628" rx="0.3"/>
+      <rect x="2.3" y="2.5" width="4"   height="0.4" fill="#4a90d9" opacity="0.8"/>
+      <rect x="2.3" y="3.2" width="3"   height="0.4" fill="#2ecc71" opacity="0.8"/>
+      <rect x="2.3" y="3.9" width="5"   height="0.4" fill="#4a90d9" opacity="0.6"/>
+      <rect x="2.3" y="4.6" width="2"   height="0.4" fill="#f39c12" opacity="0.8"/>
+      <rect x="4.5" y="4.6" width="0.4" height="0.4" fill="#4a90d9"/>
+      <rect x="4"   y="9"   width="4"   height="1"   fill="#2a2a4e" rx="0.3"/>
+      <rect x="3"   y="9.8" width="6"   height="1.5" fill="#2a2a4e" rx="0.3"/>
+      <circle cx="2.5" cy="1.7" r="0.3" fill="#e74c3c"/>
+      <circle cx="3.5" cy="1.7" r="0.3" fill="#f39c12"/>
+      <circle cx="4.5" cy="1.7" r="0.3" fill="#2ecc71"/>
+    </svg>
+  );
+}
+
+function DoorSVG() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 12 12" style={{imageRendering:'pixelated',position:'absolute',inset:0}}>
+      <rect x="1" y="0" width="10" height="12" fill="#6b3f1a"/>
+      <rect x="2" y="0.5" width="8" height="11" fill="#8b5a2b"/>
+      <rect x="2.5" y="1" width="3" height="10" fill="#a06030" opacity="0.3"/>
+      <rect x="3.5" y="2" width="5" height="3" fill="#87ceeb" opacity="0.7" rx="0.3"/>
+      <circle cx="9" cy="6" r="0.7" fill="#d4af37"/>
+      <circle cx="9" cy="6" r="0.4" fill="#f0c040"/>
+    </svg>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STAFF ROOM SCENE
+// ═══════════════════════════════════════════════════════════════════════════
+function StaffRoomScene() {
+  const { state } = useGame();
+  const visible = state.agents.filter(a => !a.inBreakout);
+
+  return (
+    <div className="room-scene" style={{width:STAFF_MAP[0].length*T, height:STAFF_MAP.length*T}}>
+      {STAFF_MAP.map((row,ry) => row.map((tile,rx) => {
+        const cl = TILE_CLASS[tile];
+        const parity = (rx+ry)%2===0?'even':'odd';
+        return (
+          <div key={`${rx}-${ry}`} className={`tile tile-${cl} ${parity}`} style={{left:rx*T,top:ry*T,width:T,height:T}}>
+            {tile===2 && <DeskSVG/>}
+            {tile===3 && <TerminalSVG/>}
+            {tile===4 && <DoorSVG/>}
+          </div>
+        );
+      }))}
+      <div className="wall-deco" style={{left:1*T+2,top:2}}>📌 STAFF NOTICE BOARD</div>
+      <div className="wall-deco" style={{left:6*T+2,top:2}}>🗓 SCHEDULE</div>
+      <div className="wall-deco" style={{left:9*T+2,top:2}}>📊 METRICS</div>
+      <div className="room-label">STAFF ROOM</div>
+      <div className="door-label" style={{left:3*T-10,top:8*T+2}}>BREAKOUT A</div>
+      <div className="door-label" style={{left:8*T-10,top:8*T+2}}>BREAKOUT B</div>
+      {visible.map(a => <AgentSprite key={a.id} agent={a}/>)}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WHITEBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+function Whiteboard({ entries }) {
+  const [vis, setVis] = useState([]);
+  useEffect(()=>{
+    setVis(entries.map(()=>false));
+    entries.forEach((_,i)=>{ setTimeout(()=>setVis(p=>{const n=[...p];n[i]=true;return n;}),i*220+80); });
+  },[entries.length]);
+
+  return (
+    <div className="whiteboard">
+      <div className="wb-header">
+        <span className="wb-title">WHITEBOARD</span>
+        <div className="wb-tray">
+          <div className="wb-marker" style={{background:'#e74c3c'}}/>
+          <div className="wb-marker" style={{background:'#3498db'}}/>
+          <div className="wb-marker" style={{background:'#2ecc71'}}/>
+        </div>
+      </div>
+      <div className="wb-surface">
+        {entries.length===0 && <div className="wb-empty">Waiting for agents…</div>}
+        {entries.map((e,i)=>(
+          <div key={i} className={`wb-entry ${vis[i]?'visible':''}`} style={{top:e.y,left:e.x,color:e.color}}>
+            {e.text}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BREAKOUT ROOM SCENE
+// ═══════════════════════════════════════════════════════════════════════════
+function BreakoutRoomScene() {
+  const { state } = useGame();
+  const here = state.agents.filter(a => a.inBreakout);
+  const anyWorking = here.some(a=>a.status==='working');
+
+  return (
+    <div className="breakout-scene" style={{height:'100%'}}>
+      {/* Left: room */}
+      <div className="br-room">
+        <div className="br-floor">
+          {Array.from({length:56}).map((_,i)=>{
+            const rx=i%8, ry=Math.floor(i/8);
+            return <div key={i} className={`br-tile ${(rx+ry)%2===0?'even':'odd'}`}/>;
+          })}
+        </div>
+        <div className="br-wall top"/><div className="br-wall bottom"/>
+        <div className="br-wall left"/><div className="br-wall right"/>
+        <div className="br-door">
+          <svg width="36" height="44" viewBox="0 0 9 11" style={{imageRendering:'pixelated'}}>
+            <rect x="0" y="0" width="9" height="11" fill="#8b5a2b"/>
+            <rect x="0.5" y="0.5" width="8" height="10" fill="#a06030"/>
+            <rect x="1" y="1" width="4" height="3" fill="#87ceeb" opacity="0.7" rx="0.3"/>
+            <circle cx="7.5" cy="5.5" r="0.7" fill="#d4af37"/>
+          </svg>
+          <span className="br-door-label">TO STAFF ROOM</span>
+        </div>
+        <div className="br-room-label">BREAKOUT ROOM</div>
+        {/* Conference table */}
+        <div className="conference-table">
+          <svg width="160" height="110" viewBox="0 0 40 27" style={{imageRendering:'pixelated'}}>
+            <ellipse cx="20" cy="25" rx="18" ry="2.5" fill="rgba(0,0,0,0.25)"/>
+            <rect x="2" y="5" width="36" height="18" rx="3" fill="#7a5a1a"/>
+            <rect x="2" y="4" width="36" height="5" rx="2" fill="#9a7a2a"/>
+            <rect x="3" y="4" width="34" height="16" rx="2" fill="#8b6920"/>
+            <rect x="4" y="6"  width="32" height="0.5" fill="#9a7820" opacity="0.5"/>
+            <rect x="4" y="9"  width="32" height="0.5" fill="#9a7820" opacity="0.5"/>
+            <rect x="4" y="12" width="32" height="0.5" fill="#9a7820" opacity="0.5"/>
+            <rect x="4" y="15" width="32" height="0.5" fill="#9a7820" opacity="0.5"/>
+            <rect x="10" y="8" width="5" height="4" fill="#f0f0e0" rx="0.5" opacity="0.9"/>
+            <rect x="10.5" y="8.5" width="3" height="0.4" fill="#ccc" opacity="0.6"/>
+            <rect x="10.5" y="9.2" width="4" height="0.4" fill="#ccc" opacity="0.6"/>
+            <rect x="22" y="7" width="7" height="5" fill="#1a1a2e" rx="0.5"/>
+            <rect x="22.5" y="7.5" width="6" height="4" fill="#0d2040" rx="0.3"/>
+            <rect x="23" y="8" width="5" height="3" fill="#1e3a5f" rx="0.2"/>
+            <rect x="23.3" y="8.3" width="1.5" height="0.6" fill="#4a90d9" opacity="0.7"/>
+            <rect x="7" y="13" width="2" height="2.5" fill="#8b4513" rx="0.3"/>
+            <rect x="7" y="13" width="2" height="0.8" fill="#d4762a" rx="0.3"/>
+            <rect x="30" y="13" width="2" height="2.5" fill="#8b4513" rx="0.3"/>
+            <rect x="30" y="13" width="2" height="0.8" fill="#d4762a" rx="0.3"/>
+          </svg>
+        </div>
+        {/* Chairs */}
+        {[{x:140,y:80,r:0},{x:60,y:140,r:90},{x:280,y:140,r:-90},{x:100,y:210,r:180},{x:220,y:210,r:180}].map((c,i)=>(
+          <div key={i} className="chair" style={{left:c.x,top:c.y,transform:`rotate(${c.r}deg)`}}/>
+        ))}
+        {here.map(a=><AgentSprite key={a.id} agent={a}/>)}
+      </div>
+
+      {/* Right: whiteboard panel */}
+      <div className="br-whiteboard-panel">
+        <Whiteboard entries={state.whiteboardEntries}/>
+        {anyWorking && (
+          <div className="file-exchange">
+            <div className="fe-label">📁 Sharing files…</div>
+            <div className="fe-files">
+              {['research.md','impl.ts','design.fig'].map((f,i)=>(
+                <div key={f} className="fe-file" style={{animationDelay:`${i*0.4}s`}}>
+                  <span className="fe-icon">📄</span>
+                  <span className="fe-name">{f}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ADD AGENT MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+const SKIN_TONES = [
+  { color:'#f0c08a', label:'Light'       },
+  { color:'#d4956a', label:'Medium'      },
+  { color:'#a0622a', label:'Tan'         },
+  { color:'#7a3d1a', label:'Brown'       },
+  { color:'#4a1e0a', label:'Dark'        },
+];
+
+function AddAgentModal({ onClose }) {
+  const { d, state } = useGame();
+  const [name, setName] = useState('');
+  const [role, setRole] = useState('Researcher');
+  const [ci, setCi] = useState(0);
+  const [glasses, setGlasses] = useState(false);
+  const [si, setSi] = useState(0);
+  const [whiteShoes, setWhiteShoes] = useState(false);
+
+  const add = () => {
+    if(!name.trim()) return;
+    d('ADD_AGENT',{
+      name:name.trim(), role,
+      color:PRESET_COLORS[ci].color, hat:PRESET_COLORS[ci].hat,
+      hasGlasses:glasses,
+      skinColor: SKIN_TONES[si].color,
+      shoeColor: whiteShoes ? '#f5f5f5' : '#1a1030',
+      trouserColor: '#1a2a4a',
+    });
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={e=>e.stopPropagation()}>
+        <div className="modal-title">+ NEW AGENT</div>
+        <div className="modal-field">
+          <label>NAME</label>
+          <input className="modal-input" placeholder="e.g. Zeta" value={name} maxLength={12}
+            onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==='Enter'&&add()} autoFocus/>
+        </div>
+        <div className="modal-field">
+          <label>ROLE</label>
+          <div className="role-pills">
+            {PRESET_ROLES.map(r=>(
+              <button key={r} className={`role-pill ${role===r?'active':''}`} onClick={()=>setRole(r)}>{r}</button>
+            ))}
+          </div>
+        </div>
+        <div className="modal-field">
+          <label>COLOR</label>
+          <div className="color-swatches">
+            {PRESET_COLORS.map((c,i)=>(
+              <button key={i} className={`swatch ${ci===i?'selected':''}`} style={{background:c.color}} onClick={()=>setCi(i)}/>
+            ))}
+          </div>
+        </div>
+        <div className="modal-field">
+          <label>SKIN TONE</label>
+          <div style={{display:'flex',gap:6}}>
+            {SKIN_TONES.map((s,i)=>(
+              <button key={i} onClick={()=>setSi(i)} title={s.label}
+                style={{width:22,height:22,borderRadius:3,background:s.color,
+                  border: si===i ? '2.5px solid #1a1030' : '2px solid transparent',
+                  boxShadow: si===i ? '0 0 0 2px white, 0 0 0 4px #1a1030' : 'none',
+                  cursor:'pointer',transform:si===i?'scale(1.1)':'scale(1)',transition:'transform .1s'}}/>
+            ))}
+          </div>
+        </div>
+
+        <div className="modal-field">
+          <label>EXTRAS</label>
+          <div style={{display:'flex',gap:14,flexWrap:'wrap'}}>
+            <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}>
+              <input type="checkbox" checked={glasses} onChange={e=>setGlasses(e.target.checked)} style={{width:13,height:13,cursor:'pointer'}}/>
+              <span style={{fontSize:6,color:'#1a1030'}}>Glasses</span>
+            </label>
+            <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}>
+              <input type="checkbox" checked={whiteShoes} onChange={e=>setWhiteShoes(e.target.checked)} style={{width:13,height:13,cursor:'pointer'}}/>
+              <span style={{fontSize:6,color:'#1a1030'}}>White Trainers</span>
+            </label>
+          </div>
+        </div>
+
+        <div className="modal-preview">
+          <svg width="48" height="60" viewBox="0 0 8 10" style={{imageRendering:'pixelated'}}>
+            <rect x="2" y="0" width="4" height="1" fill={PRESET_COLORS[ci].hat}/>
+            <rect x="1" y="0.5" width="6" height="1.2" fill={PRESET_COLORS[ci].hat}/>
+            <rect x="1" y="1" width="6" height="4" fill={SKIN_TONES[si].color}/>
+            <rect x="2" y="2.5" width="1.2" height="1.2" fill="#1a1030"/>
+            <rect x="4.8" y="2.5" width="1.2" height="1.2" fill="#1a1030"/>
+            {glasses && <>
+              <rect x="1.55" y="2.05" width="2.05" height="1.75" rx="0.38" fill="rgba(180,220,255,0.18)" stroke="#2c1a06" strokeWidth="0.28"/>
+              <rect x="4.38" y="2.05" width="2.05" height="1.75" rx="0.38" fill="rgba(180,220,255,0.18)" stroke="#2c1a06" strokeWidth="0.28"/>
+              <rect x="3.6" y="2.72" width="0.78" height="0.22" fill="#2c1a06"/>
+              <line x1="1.55" y1="2.72" x2="0.7" y2="2.52" stroke="#2c1a06" strokeWidth="0.26"/>
+              <line x1="6.43" y1="2.72" x2="7.3" y2="2.52" stroke="#2c1a06" strokeWidth="0.26"/>
+            </>}
+            <rect x="2.8" y="4.2" width="2.4" height="0.6" rx="0.3" fill="#8b2020"/>
+            <rect x="1.5" y="5" width="5" height="3" fill={PRESET_COLORS[ci].color}/>
+            <polygon points="3,5 4,5 3.3,6.5" fill="#f0f0e8" opacity="0.9"/>
+            <polygon points="5,5 4,5 4.7,6.5" fill="#f0f0e8" opacity="0.9"/>
+            <rect x="3.7" y="5" width="0.6" height="2.8" fill="#f0f0e8" opacity="0.7"/>
+            <circle cx="4" cy="7.2" r="0.25" fill="#f0f0e8" opacity="0.8"/>
+            <rect x="0.2" y="5" width="1.3" height="1.8" rx="0.4" fill={PRESET_COLORS[ci].color}/>
+            <rect x="6.5" y="5" width="1.3" height="1.8" rx="0.4" fill={PRESET_COLORS[ci].color}/>
+            <rect x="1.5" y="7.5" width="2" height="2" rx="0.3" fill="#1a2a4a"/>
+            <rect x="4.5" y="7.5" width="2" height="2" rx="0.3" fill="#1a2a4a"/>
+            <rect x="1.2" y="9.2" width="2.6" height="0.8" rx="0.3" fill={whiteShoes?'#f5f5f5':'#1a1030'}/>
+            <rect x="4.2" y="9.2" width="2.6" height="0.8" rx="0.3" fill={whiteShoes?'#f5f5f5':'#1a1030'}/>
+            {whiteShoes && <>
+              <rect x="1.4" y="9.3" width="1.2" height="0.25" rx="0.12" fill="rgba(255,255,255,0.6)"/>
+              <rect x="4.4" y="9.3" width="1.2" height="0.25" rx="0.12" fill="rgba(255,255,255,0.6)"/>
+            </>}
+          </svg>
+          <div className="preview-name" style={{color:PRESET_COLORS[ci].color}}>{name||'???'}</div>
+          <div className="preview-role">{role}</div>
+        </div>
+        <div className="modal-agent-count">{state.agents.length}/8 agents</div>
+        <div className="modal-actions">
+          <button className="modal-cancel" onClick={onClose}>CANCEL</button>
+          <button className="modal-confirm" onClick={add} disabled={!name.trim()||state.agents.length>=8}>ADD AGENT</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DIALOG BOX
+// ═══════════════════════════════════════════════════════════════════════════
+function DialogBox() {
+  const { state, d, submitPrompt } = useGame();
+  const logRef = useRef(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const idle = state.phase==='idle';
+
+  useEffect(()=>{ if(logRef.current) logRef.current.scrollTop=logRef.current.scrollHeight; },[state.dialogLines]);
+
+  return (
+    <>
+      <div className="dialog-box">
+        <div className="dialog-phase">
+          <span className={`phase-dot phase-${state.phase}`}/>
+          <span className="phase-label">{PHASE_LABELS[state.phase]||''}</span>
+          <div className="phase-agents">
+            {state.agents.map(a=>(
+              <span key={a.id} className={`agent-pip ${a.status}`} style={{background:a.color}} title={`${a.name}, ${a.status}`}/>
+            ))}
+          </div>
+        </div>
+        <div className="dialog-log" ref={logRef}>
+          {state.dialogLines.map((l,i)=>(
+            <div key={i} className="dialog-line"><span className="dl-arrow">▶</span>{l}</div>
+          ))}
+        </div>
+        <div className={`dialog-input-row ${!idle?'locked':''}`}>
+          <span className="di-prompt">{idle?'>':'⏳'}</span>
+          <input className="di-input" type="text"
+            placeholder={idle?'Assign a task to your agents…':'Agents are working…'}
+            value={state.prompt} disabled={!idle}
+            onChange={e=>d('SET_PROMPT',e.target.value)}
+            onKeyDown={e=>e.key==='Enter'&&submitPrompt()}
+            autoComplete="off" spellCheck={false}
+          />
+          <button className="di-send" onClick={submitPrompt} disabled={!idle||!state.prompt.trim()}>SEND</button>
+          <button className="di-add" onClick={()=>setShowAdd(true)}>+ AGENT</button>
+        </div>
+      </div>
+      {showAdd && <AddAgentModal onClose={()=>setShowAdd(false)}/>}
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STAFF ROOM TAB
+// ═══════════════════════════════════════════════════════════════════════════
+function StaffRoomTab() {
+  const { state } = useGame();
+  const isBreakout = state.currentView==='breakout';
+  const [transClass, setTransClass] = useState('');
+
+  useEffect(()=>{
+    if(state.transitioning) { setTransClass('fade-in'); }
+    else { setTransClass('fade-out'); setTimeout(()=>setTransClass(''),350); }
+  },[state.transitioning]);
+
+  return (
+    <div className="staffroom-tab">
+      <div className="room-viewport">
+        <div className="scanlines"/>
+        <div className="room-wrapper">
+          {isBreakout ? <BreakoutRoomScene/> : <StaffRoomScene/>}
+          {state.transitioning && <div className={`transition-overlay ${transClass}`}/>}
+        </div>
+      </div>
+      <DialogBox/>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════════════════════════════════
+function Clock() {
+  const [t, setT] = useState(new Date());
+  useEffect(()=>{ const id=setInterval(()=>setT(new Date()),1000); return()=>clearInterval(id); },[]);
+  return <span className="os-clock">{t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// APP
+// ═══════════════════════════════════════════════════════════════════════════
+const TABS = [
+  { id:'staffroom', label:'🏢 Staff Room' },
+  { id:'files',     label:'📁 Files'      },
+  { id:'settings',  label:'⚙ Settings'   },
+];
+
+function AppInner() {
+  const [tab, setTab] = useState('staffroom');
+  const { state } = useGame();
+
+  return (
+    <div className="os-shell">
+      <div className="os-titlebar">
+        <div className="os-traffic">
+          <div className="os-btn red"/><div className="os-btn yellow"/><div className="os-btn green"/>
+        </div>
+        <div className="os-title">StaffRoom OS <span className="os-version">v0.1</span></div>
+        <Clock/>
+      </div>
+      <div className="os-tabbar">
+        {TABS.map(t=>(
+          <button key={t.id} className={`os-tab ${tab===t.id?'active':''}`} onClick={()=>setTab(t.id)}>
+            {t.label}
+            {t.id==='staffroom' && state.phase!=='idle' && <span className="tab-badge">●</span>}
+          </button>
+        ))}
+      </div>
+      <div className="os-content">
+        {tab==='staffroom' && <StaffRoomTab/>}
+        {tab==='files'     && <div className="placeholder-tab"><div className="ph-icon">📁</div><div className="ph-title">Files</div><div className="ph-desc">File system coming soon.</div></div>}
+        {tab==='settings'  && <div className="placeholder-tab"><div className="ph-icon">⚙</div><div className="ph-title">Settings</div><div className="ph-desc">System settings coming soon.</div></div>}
+      </div>
+      <div className="os-statusbar">
+        <span className="sb-item"><span className="sb-dot" style={{background:state.phase==='idle'?'#2ecc71':'#f39c12'}}/>{state.phase==='idle'?'System Ready':'Task Running'}</span>
+        <span className="sb-item">{state.agents.length} Agents</span>
+        <span className="sb-item">StaffRoom OS</span>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return <GameProvider><AppInner/></GameProvider>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+.breakout-scene {
+  display: flex;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ─── Left room ────────────────────────────────────────── */
+.br-room {
+  position: relative;
+  width: 420px;
+  flex-shrink: 0;
+  background: #b8966a;
+  overflow: hidden;
+}
+
+.br-floor {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(7, 1fr);
+}
+
+.br-tile {
+  background: #d4a76a;
+}
+.br-tile.odd {
+  background: #c49a5e;
+}
+
+.br-wall {
+  position: absolute;
+  background: #4a2c0a;
+  z-index: 2;
+}
+.br-wall.top    { top: 0; left: 0; right: 0; height: 10px; background: linear-gradient(#2c1a06, #6b3f1a); }
+.br-wall.bottom { bottom: 0; left: 0; right: 0; height: 10px; background: linear-gradient(#6b3f1a, #2c1a06); }
+.br-wall.left   { top: 0; bottom: 0; left: 0; width: 10px; background: linear-gradient(90deg, #2c1a06, #6b3f1a); }
+.br-wall.right  { top: 0; bottom: 0; right: 0; width: 10px; background: linear-gradient(90deg, #6b3f1a, #2c1a06); }
+
+.br-room-label {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  color: #d4af37;
+  text-shadow: 1px 1px 0 #000;
+  z-index: 5;
+  pointer-events: none;
+  letter-spacing: 1px;
+}
+
+.br-door {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.br-door-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 4px;
+  color: #d4af37;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+.conference-table {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -55%);
+  z-index: 3;
+}
+
+.chair {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #5c3512;
+  border: 2px solid #3d2308;
+  border-radius: 3px;
+  z-index: 3;
+}
+.chair::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  height: 8px;
+  background: #8b5a2b;
+  border-radius: 2px;
+}
+
+/* ─── Right panel (whiteboard) ─────────────────────────── */
+.br-whiteboard-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: #0d0d1a;
+  border-left: 3px solid #2a2a4e;
+  overflow-y: auto;
+}
+
+/* ─── File exchange ─────────────────────────────────────── */
+.file-exchange {
+  background: #0f0f2a;
+  border: 2px solid #2a2a4e;
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+.fe-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  color: #8888cc;
+  margin-bottom: 6px;
+}
+.fe-files {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fe-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: file-slide 0.5s ease both;
+}
+@keyframes file-slide {
+  0% { opacity: 0; transform: translateX(-10px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.fe-icon { font-size: 12px; }
+.fe-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 5px;
+  color: #4a90d9;
+}

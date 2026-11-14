@@ -1,0 +1,106 @@
+.room-scene {
+  position: relative;
+  overflow: hidden;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+/* ─── Tiles ─────────────────────────────────────────────── */
+.tile {
+  position: absolute;
+}
+
+.tile-floor {
+  background: #d4a76a;
+}
+.tile-floor.odd {
+  background: #c49a5e;
+}
+/* Subtle grid on floor */
+.tile-floor::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 0.5px solid rgba(0,0,0,0.06);
+}
+
+.tile-wall {
+  background: #4a2c0a;
+  box-shadow: inset 0 -4px 0 #2c1a06, inset 0 4px 0 #6b3f1a;
+}
+.tile-wall.even {
+  background: #5c3512;
+}
+.tile-wall.odd {
+  background: #4a2c0a;
+}
+
+.tile-desk {
+  background: #c49a5e; /* floor underneath */
+}
+.tile-desk.odd {
+  background: #d4a76a;
+}
+
+.tile-terminal {
+  background: #c49a5e;
+}
+
+.tile-door {
+  background: #7a5230;
+  border-left: 2px solid #5c3512;
+  border-right: 2px solid #5c3512;
+}
+
+/* ─── Room decorations ──────────────────────────────────── */
+.room-label {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: #d4af37;
+  text-shadow: 1px 1px 0 #0d0d1a;
+  letter-spacing: 2px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.wall-deco {
+  position: absolute;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 4.5px;
+  color: #f0c060;
+  background: rgba(60, 30, 5, 0.7);
+  border: 1px solid #8b6914;
+  padding: 2px 3px;
+  white-space: nowrap;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.door-label {
+  position: absolute;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 4px;
+  color: #d4af37;
+  text-align: center;
+  white-space: nowrap;
+  z-index: 5;
+  pointer-events: none;
+  text-shadow: 0 1px 0 #000;
+}
+
+/* ─── Breakout room ─────────────────────────────────────── */
+.breakout-room {
+  background: #b8966a;
+}
+
+.table-graphic {
+  position: absolute;
+  background: #7a5a1a;
+  border: 3px solid #5c3e0a;
+  border-radius: 6px;
+  box-shadow: 0 4px 0 #3d2808, inset 0 2px 0 #9a7020;
+}

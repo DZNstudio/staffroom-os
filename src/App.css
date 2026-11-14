@@ -1,0 +1,213 @@
+/* ─── OS Shell ──────────────────────────────────────────────────────────────── */
+.os-shell {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #0d0d1a;
+  overflow: hidden;
+}
+
+/* Title bar */
+.os-titlebar {
+  height: 36px;
+  background: linear-gradient(180deg, #2a2a4e 0%, #1a1a3e 100%);
+  border-bottom: 2px solid #4a4a8a;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.os-traffic {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.os-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.os-btn:hover { opacity: 0.8; }
+.os-btn.red    { background: #e74c3c; }
+.os-btn.yellow { background: #f39c12; }
+.os-btn.green  { background: #2ecc71; }
+
+.os-title {
+  flex: 1;
+  font-size: 9px;
+  color: #8888cc;
+  text-align: center;
+  letter-spacing: 2px;
+}
+.os-version {
+  color: #4a4a6a;
+  font-size: 7px;
+}
+
+.os-clock {
+  font-size: 8px;
+  color: #6666aa;
+}
+
+/* Tab bar */
+.os-tabbar {
+  display: flex;
+  background: #16162e;
+  border-bottom: 2px solid #2a2a4e;
+  flex-shrink: 0;
+}
+
+.os-tab {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  padding: 9px 16px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid #2a2a4e;
+  color: #6666aa;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+.os-tab:hover {
+  background: #1e1e3e;
+  color: #8888cc;
+}
+.os-tab.active {
+  background: #0d0d1a;
+  color: #d4af37;
+  border-bottom: 2px solid #d4af37;
+}
+
+.tab-badge {
+  color: #f39c12;
+  font-size: 8px;
+  animation: badge-pulse 0.6s ease-in-out infinite;
+}
+@keyframes badge-pulse {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+/* Main content */
+.os-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+}
+
+/* Status bar */
+.os-statusbar {
+  height: 22px;
+  background: #16162e;
+  border-top: 1px solid #2a2a4e;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 20px;
+  flex-shrink: 0;
+}
+.sb-item {
+  font-size: 5.5px;
+  color: #5555aa;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.sb-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* ─── Staff Room Tab ─────────────────────────────────────────────────────────── */
+.staffroom-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0d0d1a;
+}
+
+/* Room viewport */
+.room-viewport {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  background: #0d0d1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* CRT scanlines */
+.scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+.room-wrapper {
+  position: relative;
+  border: 3px solid #2a2a4e;
+  box-shadow:
+    0 0 0 1px #0d0d1a,
+    0 0 30px rgba(74, 74, 138, 0.3),
+    0 0 60px rgba(74, 74, 138, 0.15);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Room transition */
+.transition-overlay {
+  position: absolute;
+  inset: 0;
+  background: #0d0d1a;
+  z-index: 200;
+  animation: room-fade 0.5s ease both;
+}
+@keyframes room-fade {
+  0%   { opacity: 0; }
+  50%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.fading .room-wrapper {
+  animation: room-dim 0.5s ease both;
+}
+@keyframes room-dim {
+  0%   { filter: brightness(1); }
+  50%  { filter: brightness(0); }
+  100% { filter: brightness(1); }
+}
+
+/* ─── Placeholder ───────────────────────────────────────────────────────────── */
+.placeholder-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.ph-icon  { font-size: 48px; }
+.ph-title { font-size: 14px; color: #8888cc; }
+.ph-desc  { font-size: 8px; color: #4a4a6a; }
+
+.clock { letter-spacing: 1px; }
